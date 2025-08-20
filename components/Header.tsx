@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { useAuth } from '../contexts/AuthContext';
+import Link from "next/link";
+import { useRouter } from "next/router";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { useAuth } from "../contexts/AuthContext";
 
 const Header: React.FC = () => {
   const router = useRouter();
@@ -13,7 +13,7 @@ const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
 
   // Check if we're on the home page
-  const isHomePage = router.pathname === '/';
+  const isHomePage = router.pathname === "/";
 
   // Handle scroll for sticky header background
   useEffect(() => {
@@ -22,8 +22,8 @@ const Header: React.FC = () => {
       setIsScrolled(scrollTop > 50);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Close mobile menu when route changes
@@ -34,24 +34,24 @@ const Header: React.FC = () => {
   // Prevent scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isMobileMenuOpen]);
 
   // Menu links
   const menuLinks = [
-    { href: '/about', label: 'About Us' },
-    { href: '/subscription-plans', label: 'Subscriptions' },
-    { href: '/search', label: 'Search Flights' },
-    { href: '/faq', label: "FAQ's" },
-    { href: '/blogs', label: 'Blogs' },
-    { href: '/support', label: 'Support' },
+    { href: "/about", label: "About Us" },
+    { href: "/subscription-plans", label: "Subscriptions" },
+    { href: "/search", label: "Search Flights" },
+    { href: "/faq", label: "FAQ's" },
+    { href: "/blogs", label: "Blogs" },
+    { href: "/support", label: "Support" },
   ];
 
   const toggleMobileMenu = () => {
@@ -66,18 +66,20 @@ const Header: React.FC = () => {
   const getHeaderBgClass = () => {
     if (isHomePage) {
       // On home page: transparent initially, background when scrolled
-      return isScrolled 
-        ? 'bg-[#0C2545]/95 backdrop-blur-md border-b border-[#0C2545]' 
-        : 'bg-transparent border-b border-transparent';
+      return isScrolled
+        ? "bg-[#0C2545]/95 backdrop-blur-md border-b border-[#0C2545]"
+        : "bg-transparent border-b border-transparent";
     } else {
       // On other pages: always have background
-      return 'bg-[#0C2545] border-b border-[#0C2545]';
+      return "bg-[#0C2545] border-b border-[#0C2545]";
     }
   };
 
   return (
     <>
-      <header className={`fixed top-0 z-[70] w-full transition-all duration-300 ${getHeaderBgClass()}`}>
+      <header
+        className={`fixed top-0 z-[70] w-full transition-all duration-300 ${getHeaderBgClass()}`}
+      >
         <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 py-4">
           {/* Logo */}
           <div className="flex-shrink-0">
@@ -102,8 +104,8 @@ const Header: React.FC = () => {
                     href={link.href}
                     className={`text-white hover:text-[#F27709] transition-colors duration-200 font-thins ${
                       isActiveLink(link.href)
-                        ? 'text-[#F27709] font-bold'
-                        : 'text-white'
+                        ? "text-[#F27709] font-bold"
+                        : "text-white"
                     }`}
                   >
                     {link.label}
@@ -125,13 +127,13 @@ const Header: React.FC = () => {
                 >
                   Dashboard
                 </Link>
-              
-                <button 
+
+                <button
                   onClick={logout}
                   disabled={isLoading}
                   className="text-white hover:text-[#F27709] border border-white hover:border-[#F27709] rounded px-4 py-2 transition-colors duration-200 font-medium disabled:opacity-50"
                 >
-                  {isLoading ? 'Logging out...' : 'Logout'}
+                  {isLoading ? "Logging out..." : "Logout"}
                 </button>
               </>
             ) : (
@@ -161,17 +163,17 @@ const Header: React.FC = () => {
             <div className="w-6 h-6 flex flex-col justify-center items-center">
               <span
                 className={`block w-6 h-0.5 bg-current transition-all duration-300 ${
-                  isMobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''
+                  isMobileMenuOpen ? "rotate-45 translate-y-1.5" : ""
                 }`}
               ></span>
               <span
                 className={`block w-6 h-0.5 bg-current mt-1.5 transition-all duration-300 ${
-                  isMobileMenuOpen ? 'opacity-0' : ''
+                  isMobileMenuOpen ? "opacity-0" : ""
                 }`}
               ></span>
               <span
                 className={`block w-6 h-0.5 bg-current mt-1.5 transition-all duration-300 ${
-                  isMobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''
+                  isMobileMenuOpen ? "-rotate-45 -translate-y-1.5" : ""
                 }`}
               ></span>
             </div>
@@ -182,7 +184,7 @@ const Header: React.FC = () => {
       {/* Mobile Full-Screen Menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[60] lg:hidden">
-          <div className="fixed inset-0 bg-[#0C2545] bg-opacity-95 backdrop-blur-sm">
+          <div className="fixed inset-0 bg-[#0C2545] bg-opacity-95 backdrop-blur-sm pt-8">
             <div className="flex flex-col items-center justify-center min-h-screen px-6">
               {/* Mobile Navigation */}
               <nav className="flex flex-col items-center space-y-8 mb-12">
@@ -191,10 +193,10 @@ const Header: React.FC = () => {
                     key={link.href}
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`text-4xl md:text-5xl font-thin transition-colors duration-200 ${
+                    className={`text-2xl md:text-5xl font-thin transition-colors duration-200 ${
                       isActiveLink(link.href)
-                        ? 'text-[#F27709]'
-                        : 'text-white hover:text-[#F27709]'
+                        ? "text-[#F27709]"
+                        : "text-white hover:text-[#F27709]"
                     }`}
                   >
                     {link.label}
@@ -215,16 +217,16 @@ const Header: React.FC = () => {
                     >
                       Dashboard
                     </Link>
-                    
-                    <button 
+
+                    <button
                       onClick={() => {
                         logout();
                         setIsMobileMenuOpen(false);
                       }}
                       disabled={isLoading}
-                      className="text-2xl text-white hover:text-[#F27709] border-2 border-white hover:border-[#F27709] rounded-lg px-8 py-3 transition-colors duration-200 font-semibold disabled:opacity-50"
+                      className="text-xl text-white hover:text-[#F27709] border-2 border-white hover:border-[#F27709] rounded-lg px-8 py-2 transition-colors duration-200 font-semibold disabled:opacity-50"
                     >
-                      {isLoading ? 'Logging out...' : 'Logout'}
+                      {isLoading ? "Logging out..." : "Logout"}
                     </button>
                   </>
                 ) : (
@@ -232,14 +234,14 @@ const Header: React.FC = () => {
                     <Link
                       href="/register"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-2xl text-white hover:text-[#F27709] transition-colors duration-200 font-thin"
+                      className="text-xl text-white hover:text-[#F27709] transition-colors duration-200 font-thin"
                     >
                       Register
                     </Link>
                     <Link
                       href="/login"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="bg-[#F27709] hover:bg-[#E66900] text-white text-2xl px-20 py-3 rounded-lg font-normal transition-colors duration-200 shadow-lg"
+                      className="bg-[#F27709] hover:bg-[#E66900] text-white text-xl px-20 py-3 rounded-lg font-normal transition-colors duration-200 shadow-lg"
                     >
                       Login
                     </Link>

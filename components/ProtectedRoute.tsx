@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
-import { PageLoader } from './ui/LoadingSpinner';
+import React, { useEffect } from "react";
+import { useRouter } from "next/router";
+import { useAuth } from "../contexts/AuthContext";
+import { PageLoader } from "./ui/LoadingSpinner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,9 +12,9 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  redirectTo = '/login',
+  redirectTo = "/login",
   requireAuth = true,
-  redirectIfAuthenticated = false
+  redirectIfAuthenticated = false,
 }) => {
   const { isAuthenticated, isLoading, setRedirectPath } = useAuth();
   const router = useRouter();
@@ -24,7 +24,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     // Handle redirectIfAuthenticated first (for login/register pages)
     if (redirectIfAuthenticated && isAuthenticated) {
-      router.push('/dashboard');
+      router.push("/dashboard");
       return;
     }
 
@@ -34,17 +34,31 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       router.push(redirectTo);
       return;
     }
-  }, [isAuthenticated, isLoading, router, redirectTo, requireAuth, redirectIfAuthenticated, setRedirectPath]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    router,
+    redirectTo,
+    requireAuth,
+    redirectIfAuthenticated,
+    setRedirectPath,
+  ]);
 
   // Show loader while checking auth state
   if (isLoading) {
-    return <PageLoader message="Checking authentication..." showOverlay={true} />;
+    return (
+      <div className="w-full h-screen">
+        <PageLoader message="Checking authentication..." showOverlay={true} />
+      </div>
+    );
   }
 
   // For pages that redirect authenticated users (login/register)
   if (redirectIfAuthenticated) {
     if (isAuthenticated) {
-      return <PageLoader message="Redirecting to dashboard..." showOverlay={true} />;
+      return (
+        <PageLoader message="Redirecting to dashboard..." showOverlay={true} />
+      );
     }
     // Not authenticated, show the page (login/register)
     return <>{children}</>;
@@ -79,8 +93,10 @@ export const withAuth = <P extends object>(
     );
   };
 
-  WithAuthComponent.displayName = `withAuth(${WrappedComponent.displayName || WrappedComponent.name})`;
-  
+  WithAuthComponent.displayName = `withAuth(${
+    WrappedComponent.displayName || WrappedComponent.name
+  })`;
+
   return WithAuthComponent;
 };
 
