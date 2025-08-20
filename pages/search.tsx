@@ -10,6 +10,7 @@ import { FlightSearchData, FlightSearchResponse } from "../lib/api";
 import { apiClient } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { Input } from "@/components/ui/input";
+import { setGlobal } from "next/dist/trace";
 
 const DatePickerModal = ({
   selectedDate,
@@ -542,10 +543,11 @@ const Search = () => {
     return total < 10 ? `0${total}` : `${total}`;
   };
 
-  // Process API flight results
   const processApiFlights = (
     apiResponse: FlightSearchResponse
   ): ProcessedFlight[] => {
+    console.log("check current trip for multi", tripType);
+
     if (
       !apiResponse?.data?.flights?.AirSearchResponse?.AirSearchResult
         ?.FareItineraries
@@ -568,41 +570,60 @@ const Search = () => {
           return null;
         }
 
+        console.log("check current trip for multi 3.0", tripType);
+
+        // ✅ handle both structures for first segment
+        let originDestinationOption: any[] = [];
         const firstOriginDestination =
           fareItinerary.OriginDestinationOptions[0];
-        const originDestinationOption =
-          firstOriginDestination.OriginDestinationOption;
 
-        if (!originDestinationOption || originDestinationOption.length === 0) {
+        if (firstOriginDestination?.OriginDestinationOption) {
+          originDestinationOption =
+            firstOriginDestination.OriginDestinationOption;
+        } else if (firstOriginDestination?.FlightSegment) {
+          originDestinationOption = [firstOriginDestination]; // wrap for consistency
+        }
+
+        // 👉 enforce check only for single/round
+        if (
+          (tripType === "single" || tripType === "round") &&
+          originDestinationOption.length === 0
+        ) {
+          console.log(
+            " Exiting early because originDestinationOption is empty or missing"
+          );
           return null;
         }
 
+        console.log("check current trip for multi 4.0", tripType);
+
+        // single/round fields
         const departureAirportLocationCode =
-          originDestinationOption[0].FlightSegment.DepartureAirportLocationCode;
+          originDestinationOption?.[0]?.FlightSegment
+            ?.DepartureAirportLocationCode || "";
         const arrivalAirportLocationCode =
-          originDestinationOption[originDestinationOption.length - 1]
-            .FlightSegment.ArrivalAirportLocationCode;
+          originDestinationOption?.[originDestinationOption.length - 1]
+            ?.FlightSegment?.ArrivalAirportLocationCode || "";
         const departureDateTime =
-          originDestinationOption[0].FlightSegment.DepartureDateTime;
+          originDestinationOption?.[0]?.FlightSegment?.DepartureDateTime || "";
         const arrivalDateTime =
-          originDestinationOption[originDestinationOption.length - 1]
-            .FlightSegment.ArrivalDateTime;
+          originDestinationOption?.[originDestinationOption.length - 1]
+            ?.FlightSegment?.ArrivalDateTime || "";
 
         let totalDuration = 0;
-        originDestinationOption.forEach((segment: any) => {
-          const journeyDuration = segment.FlightSegment.JourneyDuration || 0;
-          totalDuration += journeyDuration;
+        originDestinationOption?.forEach((segment: any) => {
+          totalDuration += segment.FlightSegment.JourneyDuration || 0;
         });
-
         const hours = Math.floor(totalDuration / 60);
         const minutes = totalDuration % 60;
         const duration = `${hours}h ${minutes}m`;
 
-        const firstSegment = originDestinationOption[0].FlightSegment;
-        const marketingAirlineCode = firstSegment.MarketingAirlineCode;
+        const firstSegment = originDestinationOption?.[0]?.FlightSegment || {};
+        const marketingAirlineCode = firstSegment.MarketingAirlineCode || "";
         const operatingAirlineCode =
           firstSegment.OperatingAirline?.Code || marketingAirlineCode;
 
+        // ✅ Price
         let price = 0;
         try {
           if (
@@ -617,16 +638,17 @@ const Search = () => {
               fareItinerary.AirItineraryFareInfo.TotalFare.Amount
             );
           }
-        } catch (e) {
-          // Price parsing failed, keep as 0
-        }
+        } catch (e) {}
 
         const departureAirport = airportData[departureAirportLocationCode];
         const arrivalAirport = airportData[arrivalAirportLocationCode];
         const airline =
           airlines[operatingAirlineCode] || airlines[marketingAirlineCode];
 
-        const totalStops = Math.max(0, originDestinationOption.length - 1);
+        const totalStops = Math.max(
+          0,
+          (originDestinationOption?.length || 1) - 1
+        );
         let flightType = "Non-stop";
         if (totalStops === 1) flightType = "1 stop";
         else if (totalStops === 2) flightType = "2 stops";
@@ -634,15 +656,10 @@ const Search = () => {
 
         const points = Math.floor(price / 3);
 
-        // Get and format the fareSourceCode
         const rawFareSourceCode =
           fareItinerary.AirItineraryFareInfo?.FareSourceCode || "";
         const fareSourceCode = rawFareSourceCode.trim();
-
-        // Create a unique flight ID that includes the index
         const flightId = `flight-${index}`;
-
-        // Store the fareSourceCode in localStorage immediately
         if (fareSourceCode) {
           localStorage.setItem(`fareSourceCode_${flightId}`, fareSourceCode);
         }
@@ -653,9 +670,7 @@ const Search = () => {
             fareItinerary.AirItineraryFareInfo?.IsRefundable === "Yes"
               ? "Yes"
               : "No";
-        } catch (e) {
-          isRefundable = "As per rules";
-        }
+        } catch (e) {}
 
         const cabinClassText =
           firstSegment.CabinClassText || firstSegment.CabinClass || "Economy";
@@ -665,19 +680,27 @@ const Search = () => {
         let isReturn = false;
         let currentTripType: "single" | "round" | "multi" = tripType;
 
+        console.log("current trip type ", currentTripType);
+
         if (fareItinerary.OriginDestinationOptions.length > 1) {
           if (
             fareItinerary.OriginDestinationOptions.length === 2 &&
             tripType === "round"
           ) {
+            // ✅ Round Trip
             isReturn = true;
             currentTripType = "round";
             const returnOriginDestination =
               fareItinerary.OriginDestinationOptions[1];
-            const returnOption =
-              returnOriginDestination.OriginDestinationOption;
+            let returnOption: any[] = [];
 
-            if (returnOption && returnOption.length > 0) {
+            if (returnOriginDestination?.OriginDestinationOption) {
+              returnOption = returnOriginDestination.OriginDestinationOption;
+            } else if (returnOriginDestination?.FlightSegment) {
+              returnOption = [returnOriginDestination];
+            }
+
+            if (returnOption.length > 0) {
               const returnDepartureCode =
                 returnOption[0].FlightSegment.DepartureAirportLocationCode;
               const returnArrivalCode =
@@ -723,15 +746,20 @@ const Search = () => {
                 stops: returnStops,
               };
             }
-          } else if (
-            fareItinerary.OriginDestinationOptions.length > 2 ||
-            tripType === "multi"
-          ) {
+          } else if (tripType === "multi") {
+            // ✅ Multi City
             currentTripType = "multi";
             multiCitySegments = fareItinerary.OriginDestinationOptions.map(
               (originDest: any) => {
-                const segmentOption = originDest.OriginDestinationOption;
-                if (segmentOption && segmentOption.length > 0) {
+                let segmentOption: any[] = [];
+
+                if (originDest.OriginDestinationOption) {
+                  segmentOption = originDest.OriginDestinationOption;
+                } else if (originDest.FlightSegment) {
+                  segmentOption = [originDest]; // wrap single segment
+                }
+
+                if (segmentOption.length > 0) {
                   const segDepartureCode =
                     segmentOption[0].FlightSegment.DepartureAirportLocationCode;
                   const segArrivalCode =
@@ -779,7 +807,7 @@ const Search = () => {
           }
         }
 
-        const processedFlight = {
+        const processedFlight: ProcessedFlight = {
           id: `flight-${index}`,
           airline: airline || operatingAirlineCode,
           airlineCode: operatingAirlineCode,
@@ -803,7 +831,7 @@ const Search = () => {
           fareSourceCode,
           departureTime: departureDateTime,
           arrivalTime: arrivalDateTime,
-          flightNumber: firstSegment.FlightNumber,
+          flightNumber: firstSegment.FlightNumber || "",
           stops: totalStops,
           isReturn,
           returnFlight,
@@ -813,6 +841,7 @@ const Search = () => {
 
         return processedFlight;
       } catch (error) {
+        console.log("error for check", error);
         return null;
       }
     }).filter(Boolean) as ProcessedFlight[];
@@ -963,7 +992,12 @@ const Search = () => {
         searchData.travel_date_mc = multiCitySegments.map(
           (segment) => segment.date
         );
+        searchData.from = searchData.from_mc[0];
+        searchData.to = searchData.to_mc[searchData.to_mc.length - 1]; // last destination
+        searchData.travel_date = searchData.travel_date_mc[0];
       }
+
+      console.log("Search Data updated", searchData);
 
       const response = await apiClient.searchFlights(
         searchData,
@@ -984,10 +1018,12 @@ const Search = () => {
           }
         }
 
+        console.log("response", response);
+
         setApiFlightResults(response);
 
         const processedFlights = processApiFlights(response);
-
+        console.log("processed flights", processedFlights);
         // Store fareSourceCodes in localStorage and set search results
         const validFlights = processedFlights.filter(
           (flight) => flight && flight.fareSourceCode
@@ -998,6 +1034,8 @@ const Search = () => {
             flight.fareSourceCode
           );
         });
+
+        console.log("valid flights", validFlights);
 
         setSearchResults(validFlights);
         setFilteredResults(validFlights);
@@ -1110,15 +1148,13 @@ const Search = () => {
             : segment
         );
 
-        console.log("✅ Updated segment:", newSegments[index]);
-
-        // Auto-fill next origin from current destination (cascading logic)
         if (index < newSegments.length - 1) {
           newSegments[index + 1] = {
             ...newSegments[index + 1],
             selectedFromAirport: airport,
             from: airport.city,
             fromQuery: `${airport.city} (${airport.iata})`,
+            showFromDropdown: false, // close dropdown too
           };
           console.log("🔗 Auto-filled next segment:", newSegments[index + 1]);
         }
@@ -1241,33 +1277,65 @@ const Search = () => {
 
   // Add multi-city segment
   const addMultiCitySegment = () => {
-    setMultiCitySegments([
-      ...multiCitySegments,
-      {
-        from: "",
+    setMultiCitySegments((prev) => {
+      const lastSegment = prev[prev.length - 1]; // get last row
+
+      const newSegment = {
+        from: lastSegment?.to || "", // auto-fill from last destination
         to: "",
         date: "",
-        fromQuery: "",
+        fromQuery: lastSegment?.to
+          ? `${lastSegment.to} (${lastSegment.selectedToAirport?.iata || ""})`
+          : "",
         toQuery: "",
-        selectedFromAirport: { name: "", city: "", iata: "", country: "" },
+        selectedFromAirport: lastSegment?.selectedToAirport?.iata
+          ? { ...lastSegment.selectedToAirport }
+          : { name: "", city: "", iata: "", country: "" },
         selectedToAirport: { name: "", city: "", iata: "", country: "" },
         showFromDropdown: false,
         showToDropdown: false,
         showDatePicker: false,
-      },
-    ]);
+      };
+
+      return [...prev, newSegment];
+    });
   };
 
   // Remove multi-city segment
+
   const removeMultiCitySegment = (index: number) => {
-    if (multiCitySegments.length > 2) {
-      setMultiCitySegments(multiCitySegments.filter((_, i) => i !== index));
-    }
+    setMultiCitySegments((prev) => {
+      if (prev.length <= 2) return prev; // keep minimum 2 rows
+
+      // remove the row
+      const updated = prev.filter((_, i) => i !== index);
+
+      // re-link: ensure each row's origin = previous row's destination
+      return updated.map((segment, i) => {
+        if (i > 0) {
+          const prevSegment = updated[i - 1];
+          return {
+            ...segment,
+            selectedFromAirport: prevSegment.selectedToAirport,
+            from: prevSegment.to,
+            fromQuery: prevSegment.to
+              ? `${prevSegment.to} (${
+                  prevSegment.selectedToAirport?.iata || ""
+                })`
+              : "",
+          };
+        }
+        return segment;
+      });
+    });
   };
 
   // Handle new search (when form is modified and re-submitted)
   const handleSearch = () => {
-    if (!selectedFromAirport.iata || !selectedToAirport.iata || !travelDate) {
+    if (
+      tripType === "single" &&
+      (!selectedFromAirport.iata || !selectedToAirport.iata || !travelDate)
+    ) {
       return;
     }
 
@@ -2120,7 +2188,7 @@ const Search = () => {
                       {/* From */}
                       <div className="relative flex-1 min-w-[200px]">
                         <div
-                          className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-orange transition-colors h-[70px] flex flex-col justify-center"
+                          className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-orange transition-colors h-[70px] flex flex-col justify-center px-4"
                           onClick={() => toggleMultiCityDropdown(index, "from")}
                         >
                           <label className="text-xs font-medium text-gray-600 mb-1">
@@ -2129,9 +2197,10 @@ const Search = () => {
                           <Input
                             placeholder="Origin"
                             value={
+                              segment.fromQuery ||
                               (segment.selectedFromAirport?.name
                                 ? `${segment.selectedFromAirport.name} (${segment.selectedFromAirport.iata})`
-                                : "") || segment.fromQuery
+                                : "")
                             }
                             onChange={(e) => {
                               const val = e.target.value;
@@ -2168,25 +2237,21 @@ const Search = () => {
                                     <div
                                       key={airport.iata}
                                       className="p-3 hover:bg-gray-50 cursor-pointer border-t border-gray-100"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         handleMultiCityFromAirportSelect(
                                           index,
                                           airport
-                                        );
-                                        // updateMultiCitySegment(
-                                        //   index,
-                                        //   "fromQuery",
-                                        //   airport.city
-                                        // );
-                                        updateMultiCitySegment(
-                                          index,
-                                          "showFromDropdown",
-                                          false
                                         );
                                         updateMultiCitySegment(
                                           index,
                                           "fromQuery",
                                           ""
+                                        );
+                                        updateMultiCitySegment(
+                                          index,
+                                          "showFromDropdown",
+                                          false
                                         );
                                       }}
                                     >
@@ -2212,7 +2277,7 @@ const Search = () => {
                       {/* To */}
                       <div className="relative flex-1 min-w-[200px]">
                         <div
-                          className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-orange transition-colors h-[70px] flex flex-col justify-center"
+                          className="cursor-pointer bg-white rounded-lg border border-gray-200 hover:border-orange transition-colors h-[70px] flex flex-col justify-center px-4"
                           onClick={() => toggleMultiCityDropdown(index, "to")}
                         >
                           <label className="text-xs font-medium text-gray-600 mb-1">
@@ -2312,7 +2377,7 @@ const Search = () => {
                           <label className="text-xs font-medium text-gray-600 mb-1">
                             Travel Date
                           </label>
-                          <div className="font-bold text-gray-900 text-base lg:text-lg">
+                          <div className="font-bold text-gray-900 text-base lg:text-sm">
                             {segment.date
                               ? formatDateDisplay(segment.date)
                               : "--"}
