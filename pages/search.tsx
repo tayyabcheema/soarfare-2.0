@@ -1742,7 +1742,7 @@ const Search = () => {
 
             {/* Single/Return Trip Form */}
             {tripType !== "multi" && (
-              <div className="flex flex-col md:flex-row md:flex-wrap lg:flex-nowrap items-stretch md:items-end gap-4">
+              <div className="flex flex-col md:flex-row md:flex-wrap lg:flex-wrap items-stretch md:items-end gap-4">
                 {/* From */}
                 <div
                   className="relative flex-1 min-w-[200px]"
@@ -2127,7 +2127,7 @@ const Search = () => {
                 </div>
 
                 {/* Search Button */}
-                <div className="flex-shrink-0">
+                <div className="w-full md:w-auto self-end">
                   <button
                     onClick={handleSearch}
                     disabled={isSearching}

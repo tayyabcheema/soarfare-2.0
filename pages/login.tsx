@@ -52,7 +52,7 @@ const Login = () => {
       <Header />
 
       {/* Login Page - Background Image with White Overlay */}
-      <div className="min-h-screen relative flex items-center justify-center p-4">
+      <div className="min-h-screen relative flex items-center justify-center p-4 lg:pt-40 pt-32">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img
