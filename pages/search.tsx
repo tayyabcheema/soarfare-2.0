@@ -1767,7 +1767,12 @@ const Search = () => {
                         setFromQuery(e.target.value);
                         setShowFromDropdown(true);
                         if (val.trim() === "") {
-                          setSelectedFromAirport({});
+                          setSelectedFromAirport({
+                            name: "",
+                            city: "",
+                            iata: "",
+                            country: "",
+                          });
                         }
                       }}
                       onFocus={() => setShowFromDropdown(true)}
@@ -1860,7 +1865,12 @@ const Search = () => {
                         setToQuery(e.target.value);
                         setShowToDropdown(true);
                         if (val.trim() === "") {
-                          setSelectedToAirport({});
+                          setSelectedToAirport({
+                            name: "",
+                            city: "",
+                            iata: "",
+                            country: "",
+                          });
                         }
                       }}
                       onFocus={() => setShowToDropdown(true)}

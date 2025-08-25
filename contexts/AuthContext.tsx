@@ -1,14 +1,24 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useRouter } from 'next/router';
-import apiClient, { User, LoginData } from '../lib/api';
-import toast from 'react-hot-toast';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { useRouter } from "next/router";
+import apiClient, { User, LoginData } from "../lib/api";
+import toast from "react-hot-toast";
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, redirectTo?: string) => Promise<boolean>;
+  login: (
+    email: string,
+    password: string,
+    redirectTo?: string
+  ) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -17,8 +27,8 @@ interface AuthContextType {
 }
 
 interface RegisterData {
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
   password_confirmation: string;
@@ -28,16 +38,16 @@ interface RegisterData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Secure token storage utilities
-const TOKEN_KEY = 'token';  // Changed from 'soarfare_token'
-const USER_KEY = 'user';    // Changed from 'soarfare_user'
-const REDIRECT_KEY = 'soarfare_redirect';
+const TOKEN_KEY = "token"; // Changed from 'soarfare_token'
+const USER_KEY = "user"; // Changed from 'soarfare_user'
+const REDIRECT_KEY = "soarfare_redirect";
 
 const secureStorage = {
   setToken: (token: string) => {
     try {
       localStorage.setItem(TOKEN_KEY, token);
     } catch (error) {
-      console.error('Failed to store token:', error);
+      console.error("Failed to store token:", error);
     }
   },
 
@@ -46,7 +56,7 @@ const secureStorage = {
       const token = localStorage.getItem(TOKEN_KEY);
       return token;
     } catch (error) {
-      console.error('Failed to retrieve token:', error);
+      console.error("Failed to retrieve token:", error);
       return null;
     }
   },
@@ -56,7 +66,7 @@ const secureStorage = {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
     } catch (error) {
-      console.error('Failed to clear token:', error);
+      console.error("Failed to clear token:", error);
     }
   },
 
@@ -64,7 +74,7 @@ const secureStorage = {
     try {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
     } catch (error) {
-      console.error('Failed to store user:', error);
+      console.error("Failed to store user:", error);
     }
   },
 
@@ -73,7 +83,7 @@ const secureStorage = {
       const userStr = localStorage.getItem(USER_KEY);
       return userStr ? JSON.parse(userStr) : null;
     } catch (error) {
-      console.error('Failed to retrieve user:', error);
+      console.error("Failed to retrieve user:", error);
       return null;
     }
   },
@@ -82,7 +92,7 @@ const secureStorage = {
     try {
       sessionStorage.setItem(REDIRECT_KEY, path);
     } catch (error) {
-      console.error('Failed to store redirect path:', error);
+      console.error("Failed to store redirect path:", error);
     }
   },
 
@@ -94,13 +104,15 @@ const secureStorage = {
       }
       return path;
     } catch (error) {
-      console.error('Failed to retrieve redirect path:', error);
+      console.error("Failed to retrieve redirect path:", error);
       return null;
     }
-  }
+  },
 };
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +133,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(storedUser);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error("Auth initialization error:", error);
       } finally {
         setIsLoading(false);
       }
@@ -130,33 +142,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string, redirectTo?: string): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password: string,
+    redirectTo?: string
+  ): Promise<boolean> => {
     try {
       setIsLoading(true);
       const response = await apiClient.login({ email, password });
 
       if (response.success && response.data?.token && response.data?.user) {
         const { token: newToken, user: userData } = response.data;
-        
+
         setToken(newToken);
         setUser(userData);
         secureStorage.setToken(newToken);
         secureStorage.setUser(userData);
 
-        toast.success('Login successful!');
+        toast.success("Login successful!");
 
         // Handle redirect
-        const redirect = redirectTo || secureStorage.getRedirectPath() || '/dashboard';
+        const redirect =
+          redirectTo || secureStorage.getRedirectPath() || "/dashboard";
         router.push(redirect);
-        
+
         return true;
       } else {
-        toast.error(response.message || 'Login failed');
+        toast.error(response.message || "Login failed");
         return false;
       }
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Login failed. Please try again.');
+      console.error("Login error:", error);
+      toast.error("Login failed. Please try again.");
       return false;
     } finally {
       setIsLoading(false);
@@ -170,26 +187,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (response.success && response.data?.token && response.data?.user) {
         const { token: newToken, user: newUser } = response.data;
-        
+
         setToken(newToken);
         setUser(newUser);
         secureStorage.setToken(newToken);
         secureStorage.setUser(newUser);
 
-        toast.success('Registration successful!');
-        
+        toast.success("Registration successful!");
+
         // Redirect to dashboard after registration
-        const redirect = secureStorage.getRedirectPath() || '/dashboard';
+        const redirect = secureStorage.getRedirectPath() || "/dashboard";
         router.push(redirect);
-        
+
         return true;
       } else {
-        toast.error(response.message || 'Registration failed');
+        toast.error(response.message || "Registration failed");
         return false;
       }
     } catch (error) {
-      console.error('Registration error:', error);
-      toast.error('Registration failed. Please try again.');
+      console.error("Registration error:", error);
+      toast.error("Registration failed. Please try again.");
       return false;
     } finally {
       setIsLoading(false);
@@ -203,15 +220,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await apiClient.logout(token);
       }
     } catch (error) {
-      console.error('Logout API error:', error);
+      console.error("Logout API error:", error);
     } finally {
       // Clear local state regardless of API call result
       setUser(null);
       setToken(null);
       secureStorage.clearToken();
-      
-      toast.success('Logged out successfully');
-      router.push('/');
+
+      toast.success("Logged out successfully");
+      router.push("/");
     }
   };
 
@@ -220,7 +237,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       const response = await apiClient.fetchUser(token);
-      
+
       if (response.success && response.data) {
         setUser(response.data);
         secureStorage.setUser(response.data);
@@ -229,7 +246,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logout();
       }
     } catch (error) {
-      console.error('Refresh user error:', error);
+      console.error("Refresh user error:", error);
     }
   };
 
@@ -251,20 +268,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logout,
     refreshUser,
     setRedirectPath,
-    getToken
+    getToken,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
